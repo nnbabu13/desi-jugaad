@@ -1,0 +1,333 @@
+// ============================================================================
+// Desi Jugaad - data contract
+//
+// Stage 1/2 foundation: geography, accounts, profiles, verification.
+// Later stages extend this file (accommodation, services, parcel assistance,
+// community, messaging, moderation, promotions) - each with its own migration.
+//
+// Conventions
+//   - UUID primary keys, generated in application code.
+//   - `@@map` gives explicit snake_case table names so raw SQL needs no quoting
+//     and never collides with reserved words such as `user`.
+//   - All timestamps are `timestamptz` (UTC) per the PRD.
+//   - `demoData` marks seeded/sample records so the UI can render a "Sample"
+//     chip and must NEVER show them with a verified badge (Prompt.md 14 & 19).
+// ============================================================================
+
+generator client {
+  provider               = "prisma-client"
+  output                 = "../src/generated/prisma"
+  runtime                = "nodejs"
+  moduleFormat           = "cjs"
+  generatedFileExtension = "ts"
+  importFileExtension    = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Geography
+// ---------------------------------------------------------------------------
+
+model Country {
+  id           String   @id @default(uuid()) @db.Uuid
+  isoCode      String   @unique @db.VarChar(3)
+  name         String   @db.VarChar(120)
+  currencyCode String?  @db.VarChar(3)
+  phoneCode    String?  @db.VarChar(8)
+  flagEmoji    String?  @db.VarChar(8)
+  isActive     Boolean  @default(true)
+  isFeatured   Boolean  @default(false)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  cities City[]
+
+  // Profile "current location"
+  profilesAsCurrentCountry    UserProfile[] @relation("ProfileCurrentCountry")
+  profilesAsIntendedCountry   UserProfile[] @relation("ProfileIntendedCountry")
+
+  @@index([name])
+  @@map("countries")
+}
+
+model City {
+  id         String   @id @default(uuid()) @db.Uuid
+  countryId  String   @db.Uuid
+  name       String   @db.VarChar(120)
+  region     String?  @db.VarChar(120)
+  latitude   Float?
+  longitude  Float?
+  isActive   Boolean  @default(true)
+  isFeatured Boolean  @default(false)
+  // Launch cities from the PRD (London, Birmingham, Manchester, Dubai, Toronto...)
+  isLaunch   Boolean  @default(false)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  country Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  profilesAsCurrentCity  UserProfile[] @relation("ProfileCurrentCity")
+  profilesAsIntendedCity UserProfile[] @relation("ProfileIntendedCity")
+  rooms                  Room[]
+
+  @@unique([countryId, name])
+  @@index([name])
+  @@index([countryId, isLaunch])
+  @@map("cities")
+}
+
+// ---------------------------------------------------------------------------
+// Accounts
+// ---------------------------------------------------------------------------
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum AuthProvider {
+  EMAIL
+  PHONE
+  GOOGLE
+  APPLE
+}
+
+enum VerificationType {
+  EMAIL
+  PHONE
+  IDENTITY
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  EXPIRED
+}
+
+model User {
+  id               String        @id @default(uuid()) @db.Uuid
+  email            String        @unique @db.VarChar(320)
+  phone            String?       @unique @db.VarChar(32)
+  passwordHash     String?       @db.VarChar(255)
+  authProvider     AuthProvider  @default(EMAIL)
+  providerUserId   String?       @db.VarChar(255)
+  status           UserStatus    @default(PENDING_VERIFICATION)
+  emailVerifiedAt  DateTime?     @db.Timestamptz(3)
+  phoneVerifiedAt  DateTime?     @db.Timestamptz(3)
+  lastLoginAt      DateTime?     @db.Timestamptz(3)
+  lastActiveAt     DateTime?     @db.Timestamptz(3)
+  createdAt        DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime      @updatedAt @db.Timestamptz(3)
+  deletedAt        DateTime?     @db.Timestamptz(3)
+
+  profile       UserProfile?
+  refreshTokens RefreshToken[]
+  verifications UserVerification[]
+  rooms         Room[]            @relation("RoomHost")
+  conversationsA Conversation[]   @relation("ConversationA")
+  conversationsB Conversation[]   @relation("ConversationB")
+  sentMessages  Message[]
+  blocking      UserBlock[]       @relation("Blocking")
+  blockedBy     UserBlock[]       @relation("BlockedBy")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model UserProfile {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @unique @db.Uuid
+  fullName           String   @db.VarChar(160)
+  bio                String?  @db.Text
+  avatarUrl          String?  @db.VarChar(500)
+
+  currentCountryId   String?  @db.Uuid
+  currentCityId      String?  @db.Uuid
+  intendedCountryId  String?  @db.Uuid
+  intendedCityId     String?  @db.Uuid
+
+  // living_abroad | student_abroad | planning_to_move | other
+  lifeStage          String?  @db.VarChar(40)
+  languages          String[] @default([])
+  // public | connections | private
+  profileVisibility  String   @default("public") @db.VarChar(20)
+
+  demoData           Boolean  @default(false)
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  currentCountry  Country? @relation("ProfileCurrentCountry", fields: [currentCountryId], references: [id], onDelete: SetNull)
+  currentCity     City?    @relation("ProfileCurrentCity", fields: [currentCityId], references: [id], onDelete: SetNull)
+  intendedCountry Country? @relation("ProfileIntendedCountry", fields: [intendedCountryId], references: [id], onDelete: SetNull)
+  intendedCity    City?    @relation("ProfileIntendedCity", fields: [intendedCityId], references: [id], onDelete: SetNull)
+
+  @@index([currentCountryId, currentCityId])
+  @@map("user_profiles")
+}
+
+model UserVerification {
+  id         String             @id @default(uuid()) @db.Uuid
+  userId     String             @db.Uuid
+  type       VerificationType
+  status     VerificationStatus @default(PENDING)
+  provider   String?            @db.VarChar(64)
+  reference  String?            @db.VarChar(255)
+  verifiedAt DateTime?          @db.Timestamptz(3)
+  expiresAt  DateTime?          @db.Timestamptz(3)
+  createdAt  DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime           @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // One row per verification type per user: the badge shown in the UI is
+  // derived from `status == VERIFIED`, never asserted independently.
+  @@unique([userId, type])
+  @@map("user_verifications")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique @db.VarChar(128)
+  expiresAt DateTime  @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  userAgent String?   @db.VarChar(400)
+  ip        String?   @db.VarChar(64)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@map("refresh_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Marketplace (Stage 3): listings, messaging
+// ---------------------------------------------------------------------------
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+model Room {
+  id String       @id @default(uuid()) @db.Uuid
+  hostId         String       @db.Uuid
+  title          String       @db.VarChar(200)
+  description    String?      @db.Text
+  // Option lists mirror the UI (rooms.tsx / room-detail.tsx).
+  accommodationType String    @default("room_shared") @db.VarChar(40)
+  furnished      String       @default("unfurnished") @db.VarChar(20)
+  // Monthly rent in whole currency units (Prompt.md 4 & 12): displayed as the
+  // asking price; people arrange the stay by chatting with the host.
+  rent           Int          @default(0)
+  currency       String       @default("GBP") @db.VarChar(3)
+  // Neighbourhood only - exact residential addresses are never stored or
+  // exposed (Prompt.md 3).
+  area           String?      @db.VarChar(160)
+  rooms          Int          @default(1) @db.SmallInt
+  photos         String[]     @default([])
+  // Optional listing details collected by the publish wizard.
+  availableFrom  DateTime?    @db.Date
+  billsIncluded  Boolean?
+  houseRules     String?      @db.Text
+  status         ListingStatus @default(ACTIVE)
+  demoData       Boolean      @default(false)
+  cityId         String?      @db.Uuid
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(3)
+
+  host          User          @relation("RoomHost", fields: [hostId], references: [id], onDelete: Cascade)
+  city          City?         @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  conversations Conversation[]
+
+  @@index([status, cityId])
+  @@index([hostId, status])
+  @@map("rooms")
+}
+
+model Conversation {
+  id                 String    @id @default(uuid()) @db.Uuid
+  // Participants are stored ordered (A < B) so the unique pair below prevents
+  // duplicate threads between the same two members.
+  participantA       String    @db.Uuid
+  participantB       String    @db.Uuid
+  roomId             String?   @db.Uuid
+  lastMessageAt      DateTime? @db.Timestamptz(3)
+  lastMessagePreview String?   @db.VarChar(500)
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @db.Timestamptz(3)
+
+  participantAUser User      @relation("ConversationA", fields: [participantA], references: [id], onDelete: Cascade)
+  participantBUser User      @relation("ConversationB", fields: [participantB], references: [id], onDelete: Cascade)
+  room             Room?     @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  messages         Message[]
+
+  @@unique([participantA, participantB])
+  @@index([participantB])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  senderId       String       @db.Uuid
+  body           String       @db.Text
+  readAt         DateTime?    @db.Timestamptz(3)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+// ---------------------------------------------------------------------------
+// Safety: one member can block another; a blocked pair can no longer start
+// or continue a conversation (Prompt.md §13 safety expectations).
+// ---------------------------------------------------------------------------
+
+model UserBlock {
+  id        String   @id @default(uuid()) @db.Uuid
+  blockerId String   @db.Uuid
+  blockedId String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  blocker User @relation("Blocking", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("user_blocks")
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (schema lands early; the centre is built in Stage 5)
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @db.Uuid
+  type          String    @db.VarChar(60)
+  title         String    @db.VarChar(200)
+  body          String    @db.Text
+  referenceType String?   @db.VarChar(60)
+  referenceId   String?   @db.Uuid
+  // Sensitive detail is intentionally excluded from previews (Prompt.md 13).
+  readAt        DateTime? @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}

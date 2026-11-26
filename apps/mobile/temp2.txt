@@ -1,0 +1,268 @@
+﻿/**
+ * Location selector (Prompt.md Â§2, Â§4).
+ *
+ * Allows the user to change their selected country and city.
+ * The choice persists to device storage and, when signed in, updates the
+ * user's profile on the server. Home content re-renders around the new
+ * selection immediately.
+ */
+
+import { Ionicons } from '@expo/vector-icons';
+import { useState, useEffect } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { AppText } from '@/components/ui/app-text';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { ErrorState, LoadingState } from '@/components/ui/states';
+import { useLocation, setLocation } from '@/stores/location';
+import { useTheme } from '@/theme/use-theme';
+import { router } from 'expo-router';
+
+export default function LocationSelectorScreen() {
+  const theme = useTheme();
+  const { location, loading: locLoading } = useLocation();
+
+  const [countryIso, setCountryIso] = useState(null);
+  const [countryName, setCountryName] = useState('');
+  const [selectedCity, setSelectedCity] = useState(null);
+  const [error, setError] = useState(null);
+  const [showCountries, setShowCountries] = useState(false);
+
+  // Pre-defined countries matching demo data
+  const countryOptions = [
+    { iso: 'GB', name: 'United Kingdom' },
+    { iso: 'AE', name: 'United Arab Emirates' },
+    { iso: 'CA', name: 'Canada' },
+    { iso: 'IN', name: 'India' },
+  ];
+
+  // Initial load: use the user's current selection
+  useEffect(() => {
+    if (location && location.countryIso) {
+      setCountryIso(location.countryIso);
+      setCountryName(location.countryName ?? '');
+      setSelectedCity(location.cityName ?? null);
+    }
+  }, [location]);
+
+  // Save the location choice
+  const saveLocation = async () => {
+    if (!countryName || !selectedCity) {
+      setError('Please select a country and a city.');
+      return;
+    }
+    setError(null);
+    try {
+      const country = countryOptions.find(function(c) { return c.name === countryName; });
+      await setLocation({
+        countryId: country ? country.iso : '',
+        countryName: countryName,
+        countryIso: country ? country.iso : '',
+        countryFlag: null,
+        cityId: '',
+        cityName: selectedCity,
+      });
+      router.back();
+    } catch (e) {
+      setError('Could not save location. Please try again.');
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.root}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.header}>
+          <AppText variant="heading">Select your location</AppText>
+          <Pressable
+            onPress={() => setShowCountries(!showCountries)}
+            style={styles.countryToggle}
+            accessibilityRole="button"
+            accessibilityLabel={showCountries ? 'Hide countries' : 'Show countries'}
+          >
+            <Ionicons
+              name={showCountries ? 'chevron-down' : 'chevron-up'}
+              size={20}
+              color={theme.colors.textMuted}
+            />
+          </Pressable>
+        </View>
+
+        <View style={styles.currentSelection}>
+          {location && location.cityName && location.countryName ? (
+            <View>
+              <Ionicons name="check-circle" size={20} color={theme.colors.success} />
+              <AppText variant="body">
+                Current: {location.cityName}, {location.countryName}
+              </AppText>
+            </View>
+          ) : (
+            <AppText variant="body" color="textMuted">
+              No location selected. Tap above to choose.
+            </AppText>
+          )}
+        </View>
+
+        {showCountries ? (
+          <View style={styles.countryList}>
+            <AppText variant="subheading">Countries</AppText>
+            <Pressable
+              onPress={() => setShowCountries(false)}
+              style={styles.countryItem}
+              accessibilityRole="button"
+              accessibilityLabel="United Kingdom"
+            >
+              <Ionicons name="pin" size={16} color={theme.colors.secondary} />
+              <AppText variant="body">United Kingdom</AppText>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowCountries(false)}
+              style={styles.countryItem}
+              accessibilityRole="button"
+              accessibilityLabel="United Arab Emirates"
+            >
+              <Ionicons name="pin" size={16} color={theme.colors.secondary} />
+              <AppText variant="body">United Arab Emirates</AppText>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowCountries(false)}
+              style={styles.countryItem}
+              accessibilityRole="button"
+              accessibilityLabel="Canada"
+            >
+              <Ionicons name="pin" size={16} color={theme.colors.secondary} />
+              <AppText variant="body">Canada</AppText>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowCountries(false)}
+              style={styles.countryItem}
+              accessibilityRole="button"
+              accessibilityLabel="India"
+            >
+              <Ionicons name="pin" size={16} color={theme.colors.secondary} />
+              <AppText variant="body">India</AppText>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowCountries(false)}
+              style={styles.countryItem}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+            >
+              <AppText variant="body" color="secondary">Cancel</AppText>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            onPress={() => setShowCountries(true)}
+            style={styles.showCountriesBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Show countries"
+          >
+            <AppText variant="body">Choose country</AppText>
+            <Ionicons name="expand" size={20} color={theme.colors.textMuted} />
+          </Pressable>
+        )
+
+        {selectedCity ? (
+          <View style={styles.citySelection}>
+            <AppText variant="subheading">City</AppText>
+            <AppText variant="body">
+              {selectedCity}
+            </AppText>
+          </View>
+        ) : null}
+
+        <View style={styles.actionBar}>
+          {selectedCity ? null : (
+            <AppText variant="caption" color="textMuted">
+              Tap a country to set your location.
+            </AppText>
+          )}
+          <Button
+            fullWidth
+            loading={locLoading}
+            onPress={saveLocation}
+            testID="location-save"
+          >
+            {selectedCity ? 'Set as current location' : 'Select location'}
+          </Button>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  header: {
+    padding: theme.spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: theme.colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  countryToggle: {
+    padding: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+  },
+  scroll: {
+    flex: 1,
+    paddingHorizontal: theme.spacing.md,
+    paddingBottom: theme.spacing.huge,
+  },
+  currentSelection: {
+    padding: theme.spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border,
+    marginBottom: theme.spacing.lg,
+  },
+  countryList: {
+    marginTop: theme.spacing.md,
+  },
+  countryItem: {
+    padding: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  showCountriesBtn: {
+    padding: theme.spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    textAlign: 'center',
+  },
+  citySelection: {
+    padding: theme.spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.colors.border,
+    marginBottom: theme.spacing.lg,
+  },
+  actionBar: {
+    padding: theme.spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+});

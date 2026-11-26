@@ -1,0 +1,28 @@
+{
+  "name": "desi-jugaad",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desi Jugaad - global NRI marketplace for rooms & rentals, local services, parcel assistance and community",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @desi-jugaad/api dev",
+    "dev:mobile": "pnpm --filter @desi-jugaad/mobile start",
+    "dev:web": "pnpm --filter @desi-jugaad/web dev",
+    "db:tunnel": "pwsh -File scripts/start-db-tunnel.ps1",
+    "db:generate": "pnpm --filter @desi-jugaad/api prisma:generate",
+    "db:migrate": "pnpm --filter @desi-jugaad/api prisma:migrate",
+    "db:deploy": "pnpm --filter @desi-jugaad/api prisma:deploy",
+    "db:seed": "pnpm --filter @desi-jugaad/api prisma:seed",
+    "db:studio": "pnpm --filter @desi-jugaad/api prisma:studio",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

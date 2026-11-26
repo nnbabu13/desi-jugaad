@@ -1,0 +1,23 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Keep installs deterministic across the workspace
+minimumReleaseAge: 0
+
+# Shared, isolated builds
+linkWorkspacePackages: true
+
+# pnpm 11 no longer reads the `pnpm` field from package.json; build-script
+# allow-lists live here. Only these packages may run postinstall scripts.
+onlyBuiltDependencies:
+  - "@prisma/engines"
+  - "prisma"
+  - "esbuild"
+  - "@node-rs/argon2"
+  - "sharp"
+
+allowBuilds:
+  '@prisma/engines': set this to true or false
+  esbuild: set this to true or false
+  prisma: set this to true or false
