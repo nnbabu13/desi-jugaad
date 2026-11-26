@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # API: typecheck -> build -> migrate + seed a throwaway Postgres -> boot the
+  # real server -> smoke-test the public feed, the auth flow and the full
+  # publish/pause/delete listing lifecycle over HTTP.
+  # ---------------------------------------------------------------------------
+  api:
+    name: API · typecheck, build, boot & smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: desi_jugaad
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: desi_jugaad
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U desi_jugaad"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      # The app normally reaches Postgres through the SSH tunnel on :1521;
+      # in CI the service container is directly on :5432.
+      DATABASE_URL: postgresql://desi_jugaad:ci_password@127.0.0.1:5432/desi_jugaad
+      JWT_SECRET: ci-only-jwt-secret-0123456789abcdef
+      API_PORT: "4000"
+      API_CORS_ORIGINS: http://localhost:8081
+      # Allows the refresh cookie over plain http so cookie flows are testable.
+      AUTH_COOKIE_INSECURE: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      # Version comes from the root package.json "packageManager" field.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @desi-jugaad/api prisma:generate
+
+      - name: Typecheck
+        run: pnpm --filter @desi-jugaad/api typecheck
+
+      - name: Build
+        run: pnpm --filter @desi-jugaad/api build
+
+      - name: Migrate and seed
+        run: |
+          pnpm --filter @desi-jugaad/api prisma:deploy
+          pnpm --filter @desi-jugaad/api prisma:seed
+
+      - name: Boot the API
+        run: |
+          node apps/api/dist/src/main.js > api.log 2>&1 &
+          echo $! > api.pid
+
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:4000/api/v1/health; then
+              echo " healthy after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::API did not become healthy within 30s"
+          tail -n 100 api.log || true
+          exit 1
+
+      - name: Smoke test (feed, auth, publish lifecycle)
+        run: bash scripts/ci/smoke.sh
+
+      - name: API logs on failure
+        if: failure()
+        run: tail -n 200 api.log || true
+
+  # ---------------------------------------------------------------------------
+  # Mobile: typecheck + lint + a real web export, so a broken bundle fails the
+  # build instead of surfacing in the dev server.
+  # ---------------------------------------------------------------------------
+  mobile:
+    name: Mobile · typecheck, lint, web build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        working-directory: apps/mobile
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: apps/mobile
+        run: npx expo lint
+
+      - name: Export web bundle (build check)
+        working-directory: apps/mobile
+        env:
+          EXPO_NO_TELEMETRY: "1"
+        run: npx expo export --platform web
