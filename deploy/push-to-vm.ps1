@@ -32,15 +32,20 @@ if (-not (Test-Path $KeyPath)) { throw "SSH key not found: $KeyPath" }
 $commit = (git rev-parse --short HEAD).Trim()
 $tarball = Join-Path $env:TEMP "desi-jugaad-app.tar.gz"
 Write-Output "Packaging commit $commit -> $tarball"
-# .gitattributes-less archive: git archive respects .gitignore via the index,
-# so only tracked files are included (never .env, never node_modules).
+# .gitattributes keeps *.sh/*.service/Caddyfile LF; --worktree-attributes
+# applies it even before the attributes file itself is committed. Without
+# this, core.autocrlf=true emits CRLF scripts that bash/systemd reject.
 Remove-Item $tarball -ErrorAction SilentlyContinue
-git archive --format=tar.gz -o $tarball HEAD
+git archive --worktree-attributes --format=tar.gz -o $tarball HEAD
 if ($LASTEXITCODE -ne 0) { throw "git archive failed" }
 
 Write-Output "Copying to ${Target}:$RemotePath"
 scp -i $KeyPath -o StrictHostKeyChecking=no $tarball "${Target}:$RemotePath"
 if ($LASTEXITCODE -ne 0) { throw "scp failed" }
+
+Write-Output "Refreshing deploy scripts (outside the running script)..."
+ssh -i $KeyPath -o StrictHostKeyChecking=no $Target "set -e; tar -xzf $RemotePath -C /opt/desi-jugaad --overwrite deploy"
+if ($LASTEXITCODE -ne 0) { throw "remote deploy refresh failed" }
 
 Write-Output "Running update-app.sh on the VM..."
 ssh -i $KeyPath -o StrictHostKeyChecking=no $Target "bash /opt/desi-jugaad/deploy/oracle/update-app.sh $RemotePath"

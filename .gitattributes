@@ -1,0 +1,11 @@
+# Shell/systemd/nginx-style files must stay LF everywhere: `git archive`
+# (used by deploy/push-to-vm.ps1) would otherwise emit CRLF on a Windows
+# checkout (core.autocrlf=true), and bash/systemd reject CR-terminated lines
+# on the Linux VM.
+*.sh text eol=lf
+*.mjs text eol=lf
+*.service text eol=lf
+Caddyfile text eol=lf
+
+# PowerShell and Windows-side files keep native CRLF.
+*.ps1 text eol=crlf

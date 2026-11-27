@@ -479,7 +479,9 @@ export default function ExploreScreen() {
                   <Badge
                     label={categoryDef.label}
                     tone={categoryDef.tint === 'neutral' ? 'neutral' : (categoryDef.tint as 'primary' | 'secondary' | 'accent')}
-                    icon={categoryDef.icon}
+                    /* Badge prints `icon` as literal text, so it needs a glyph,
+                       not an Ionicons name (which would render as "home-outline"). */
+                    icon={categoryIcon(categoryDef.id)}
                   />
                 </View>
 

@@ -59,10 +59,14 @@ async function bootstrap(): Promise<void> {
 
   app.enableShutdownHooks();
 
+  // API_HOST comes from the environment (documented in .env.example):
+  //   dev keeps 0.0.0.0 so phones on the LAN can reach it;
+  //   production sets 127.0.0.1 so the API is only reachable through Caddy.
+  const host = process.env["API_HOST"] ?? "0.0.0.0";
   const port = Number(process.env["API_PORT"] ?? 4000);
-  await app.listen(port, "0.0.0.0");
+  await app.listen(port, host);
 
-  Logger.log(`API listening on http://localhost:${port}/api/v1`, "Bootstrap");
+  Logger.log(`API listening on http://${host}:${port}/api/v1`, "Bootstrap");
   Logger.log(
     `CORS origins: ${origins.join(", ")}`,
     "Bootstrap",

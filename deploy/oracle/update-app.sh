@@ -20,7 +20,10 @@ TARBALL="${1:-/tmp/desi-jugaad-app.tar.gz}"
 [ -f "$APP_DIR/.env" ] || { echo "ERROR: $APP_DIR/.env missing (copy .env.production.example)" >&2; exit 1; }
 
 echo "== 1/6 extract code (untracked .env is preserved) =="
-tar -xzf "$TARBALL" -C "$APP_DIR" --overwrite
+# NOTE: the deploy/ directory is deliberately NOT extracted here - this very
+# script lives in it, and overwriting a script bash is executing corrupts the
+# read. deploy/ is refreshed separately by push-to-vm.ps1 before this runs.
+tar -xzf "$TARBALL" -C "$APP_DIR" --overwrite --exclude=deploy --exclude='deploy/*'
 cd "$APP_DIR"
 
 echo "== 2/6 install dependencies =="
@@ -38,15 +41,22 @@ set -a
 . "$APP_DIR/.env"
 set +a
 mkdir -p /opt/backups
+# Prefer the PGDG client matching the server (Oracle Linux ships pg_dump 13
+# in /usr/bin which cannot dump a PostgreSQL 16 server).
+PGDUMP="pg_dump"
+for cand in /usr/pgsql-17/bin/pg_dump /usr/pgsql-16/bin/pg_dump /usr/pgsql-15/bin/pg_dump; do
+  if [ -x "$cand" ]; then PGDUMP="$cand"; break; fi
+done
+echo "   using: $($PGDUMP --version)"
 BK="/opt/backups/desi-jugaad-$(date +%Y%m%d-%H%M%S).sql.gz"
-pg_dump --no-owner "$DATABASE_URL" | gzip > "$BK"
+"$PGDUMP" --no-owner "$DATABASE_URL" | gzip > "$BK"
 echo "   backup -> $BK ($(du -h "$BK" | cut -f1))"
 # keep the newest 14 backups only
 ls -1t /opt/backups/desi-jugaad-*.sql.gz 2>/dev/null | tail -n +15 | xargs -r rm -f
 
 echo "== 6/6 apply pending migrations and restart =="
 pnpm --filter @desi-jugaad/api prisma:deploy
-if systemctl list-unit-files --no-legend 2>/dev/null | grep -q '^desi-jugaad-api'; then
+if [ -f /etc/systemd/system/desi-jugaad-api.service ]; then
   sudo systemctl restart desi-jugaad-api
   for i in $(seq 1 30); do
     if curl -sf http://127.0.0.1:4000/api/v1/health >/dev/null 2>&1; then
@@ -60,5 +70,5 @@ if systemctl list-unit-files --no-legend 2>/dev/null | grep -q '^desi-jugaad-api
   exit 1
 else
   echo "NOTE: systemd unit not installed yet - code is in place."
-  echo "      Run deploy/oracle/bootstrap.sh once to install Caddy/systemd/UFW."
+  echo "      Run deploy/oracle/bootstrap.sh once to install Caddy/systemd/firewall."
 fi

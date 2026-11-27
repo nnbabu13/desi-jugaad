@@ -23,8 +23,9 @@ No step uses a paid service or a purchased domain.
 | Repo variable `EXPO_PUBLIC_API_URL` | ✅ set to `https://132-226-212-175.sslip.io` |
 | Pages enabled (source: GitHub Actions, branch main) | ✅ |
 | Cross-site cookie (`SameSite=None; Secure`) + CORS code | ✅ in repo (this commit) |
-| Oracle VM: Node/pnpm/Caddy/systemd/UFW + app | ⬜ steps A–D below |
-| OCI ingress for TCP 80/443 | ⬜ **your console click** (step B) |
+| Oracle VM: Node 26, pnpm 11.9.0, Caddy, systemd, host firewall | ✅ done (bootstrap.sh) - firewall is **firewalld** on this Oracle Linux image (script auto-detects; ufw is only the fallback when firewalld is absent) |
+| App deployed: install, build, pg_dump backup, migrate, service healthy | ✅ health `{"status":"ok","database":{"status":"up"}}` on 127.0.0.1:4000; backups in `/opt/backups/` |
+| OCI ingress for TCP 80/443 | ⬜ **your console click** (step B) - Caddy retries ACME every 10 min and issues the cert automatically afterwards |
 
 ---
 
@@ -40,7 +41,7 @@ Re-run any time: Actions → *Deploy to GitHub Pages* → *Run workflow*.
 
 ## B. Oracle Cloud console — your click (once)
 
-The VM's host firewall (UFW, step C) is only half the story: **Oracle's security list currently blocks 80/443 (verified)**.
+The VM's host firewall (firewalld; ufw only as a fallback, step C) is only half the story: **Oracle's security list currently blocks 80/443 (verified)**.
 
 1. Oracle Cloud → Compute → Instances → your VM → **Networking → Edit** (or VCN → Security lists):
    Add **stateless ingress** rules, source `0.0.0.0/0`:
@@ -82,7 +83,7 @@ Remove-Item $env:TEMP\desi-jugaad-prod.env
 # --- from Windows: ship the code (archive HEAD -> scp -> install/build/migrate) ---
 .\deploy\push-to-vm.ps1
 
-# --- from Windows/SSH: install Node 26, pnpm, Caddy, systemd, UFW (once) ---
+# --- from Windows/SSH: install Node 26, pnpm, Caddy, systemd + firewall (once) ---
 ssh -i $KEY opc@132.226.212.175 "cd /opt/desi-jugaad && bash deploy/oracle/bootstrap.sh"
 ```
 
@@ -142,9 +143,11 @@ curl -sS https://132-226-212-175.sslip.io/api/v1/health
 # disk space (logs/backups grow)
 ssh -i $KEY opc@132.226.212.175 "df -h / && sudo journalctl --vacuum-size=200M"
 
-# backups (taken automatically before every deploy; add a daily one too)
+# backups (taken automatically before every deploy; add a daily one too).
+# NOTE: use the PGDG /usr/pgsql-16/bin/pg_dump - Oracle Linux's /usr/bin/pg_dump
+# is v13 and refuses a PostgreSQL 16 server (verified during deployment).
 ssh -i $KEY opc@132.226.212.175 "crontab -l"   # add if missing:
-# 0 3 * * * . /opt/desi-jugaad/.env; pg_dump --no-owner \"$DATABASE_URL\" | gzip > /opt/backups/desi-jugaad-daily-$(date +\%F).sql.gz; ls -1t /opt/backups/*.sql.gz | tail -n +15 | xargs -r rm -f
+# 0 3 * * * . /opt/desi-jugaad/.env; /usr/pgsql-16/bin/pg_dump --no-owner \"$DATABASE_URL\" | gzip > /opt/backups/desi-jugaad-daily-$(date +\%F).sql.gz; ls -1t /opt/backups/*.sql.gz | tail -n +15 | xargs -r rm -f
 
 # reboot verification
 ssh -i $KEY opc@132.226.212.175 "systemctl is-enabled desi-jugaad-api caddy; curl -sf localhost:4000/api/v1/health"
@@ -165,8 +168,10 @@ managed database; out of scope for this no-cost deployment.
   placeholders). Seeded demo accounts have no passwords (not login targets).
 - Production `.env` lives only at `/opt/desi-jugaad/.env` (mode 600, owner
   opc) and on your Windows machine — never in git, never in `EXPO_PUBLIC_*`.
-- Not exposed publicly: port 4000 (bind 127.0.0.1 + UFW deny), port 5432
-  (local bind + UFW deny + OCI security list).
+- Not exposed publicly: port 4000 (bound to **127.0.0.1** in production via
+  `API_HOST`, plus firewalld/OCI deny), port 5432 (PostgreSQL local bind +
+  firewalld + OCI security list). The only public ports are 80/443, served
+  by Caddy.
 - Existing protections untouched: JWT auth, throttling (300/min, auth
   5–10/min), ValidationPipe whitelist, httpOnly refresh cookie, CORS origin
   allow-list.

@@ -35,7 +35,11 @@ sudo npm install --silent -g "pnpm@$PNPM_VERSION"
 echo "   $(pnpm -v)"
 
 echo "== 4/8 directories =="
-mkdir -p "$APP_DIR" /opt/backups
+mkdir -p "$APP_DIR"
+# /opt is root-owned; the opc user owns the backup dir (update-app.sh and the
+# daily pg_dump cron both write here as opc).
+sudo mkdir -p /opt/backups
+sudo chown opc:opc /opt/backups 2>/dev/null || true
 
 echo "== 5/8 Caddy (official EL9 repo) =="
 sudo dnf install -y 'dnf-command(copr)' >/dev/null
@@ -63,8 +67,18 @@ else
   echo "           Create it from .env.production.example, then: sudo systemctl start desi-jugaad-api"
 fi
 
-echo "== 7/8 host firewall (UFW) =="
-if command -v ufw >/dev/null 2>&1; then
+echo "== 7/8 host firewall =="
+if systemctl is-active --quiet firewalld 2>/dev/null; then
+  # Oracle Linux runs firewalld by default. Enabling ufw *alongside* it would
+  # make two managers fight over nftables and can lock out SSH on a remote
+  # host, so we add only the two web services to the active firewalld zone.
+  # Default zone already allows ssh and denies everything else (4000/5432
+  # stay closed).
+  sudo firewall-cmd --permanent --add-service=http >/dev/null
+  sudo firewall-cmd --permanent --add-service=https >/dev/null
+  sudo firewall-cmd --reload >/dev/null
+  echo "   firewalld: $(sudo firewall-cmd --list-all | grep -E 'services:' | sed 's/^ *//')"
+elif command -v ufw >/dev/null 2>&1; then
   sudo ufw allow 22/tcp comment 'SSH' >/dev/null
   sudo ufw allow 80/tcp comment 'Caddy HTTP-01 + redirect' >/dev/null
   sudo ufw allow 443/tcp comment 'Caddy HTTPS' >/dev/null
@@ -72,9 +86,21 @@ if command -v ufw >/dev/null 2>&1; then
   sudo ufw --force enable >/dev/null
   sudo ufw status verbose | sed 's/^/   /'
 else
-  echo "   ERROR: ufw package not available. Enable EPEL (sudo dnf install -y epel-release)"
-  echo "   then: sudo dnf install -y ufw  - and re-run this script."
-  exit 1
+  echo "   installing ufw from AppStream..."
+  sudo dnf install -y ufw >/dev/null 2>&1 || {
+    sudo dnf install -y epel-release >/dev/null 2>&1 || true
+    sudo dnf install -y ufw >/dev/null 2>&1
+  }
+  if command -v ufw >/dev/null 2>&1; then
+    sudo ufw allow 22/tcp >/dev/null
+    sudo ufw allow 80/tcp >/dev/null
+    sudo ufw allow 443/tcp >/dev/null
+    sudo ufw --force enable >/dev/null
+    sudo ufw status verbose | sed 's/^/   /'
+  else
+    echo "   ERROR: neither firewalld nor ufw is usable - see deploy/README.md"
+    exit 1
+  fi
 fi
 
 echo "== 8/8 verification =="
