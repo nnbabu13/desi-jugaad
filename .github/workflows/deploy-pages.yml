@@ -1,0 +1,88 @@
+name: Deploy to GitHub Pages
+
+# Builds the static Expo web export and publishes it to GitHub Pages.
+# Runs on every push to main (per deployment requirements) and on demand.
+#
+# Required repository variable (Settings -> Actions -> Variables):
+#   EXPO_PUBLIC_API_URL = https://<oracle-public-ip>.sslip.io
+# The API URL is public by design. Never put JWT secrets, database
+# credentials or any other secret in EXPO_PUBLIC_* variables - they are
+# inlined into the JavaScript bundle and visible to every visitor.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deployment half-way; queue them instead.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build static site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # Version comes from the root package.json "packageManager" field.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify API URL variable
+        env:
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+        run: |
+          if [ -z "$EXPO_PUBLIC_API_URL" ]; then
+            echo "::error::Repository variable EXPO_PUBLIC_API_URL is not set. Expected value: https://<oracle-public-ip>.sslip.io"
+            exit 1
+          fi
+          echo "API URL for this build: $EXPO_PUBLIC_API_URL"
+
+      - name: Export static web app
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+          EXPO_NO_TELEMETRY: "1"
+        # expo.web.output=static + experiments.baseUrl=/desi-jugaad (app.json)
+        # make Expo emit per-route HTML with base-prefixed assets and an
+        # inlined router base path.
+        run: npx expo export --platform web
+
+      - name: Prepare for Pages (verify prefixes, generate 404 fallback)
+        working-directory: apps/mobile
+        # Fails the build if any root-absolute asset references remain or the
+        # router base is missing; also writes dist/404.html for the dynamic
+        # /chat/[id] route (GitHub Pages has no rewrites).
+        run: node ../../scripts/pages/prepare.mjs dist
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/mobile/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
