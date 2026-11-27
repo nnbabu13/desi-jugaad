@@ -80,7 +80,7 @@ export class AuthController {
   ) {
     const presented = dto.refreshToken ?? req.cookies?.[REFRESH_COOKIE];
     await this.auth.logout(presented);
-    res.clearCookie(REFRESH_COOKIE, { path: "/api/v1/auth" });
+    res.clearCookie(REFRESH_COOKIE, TokensService.refreshCookieClearOptions());
     return { ok: true };
   }
 
@@ -107,7 +107,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.auth.logout(undefined);
-    res.clearCookie(REFRESH_COOKIE, { path: "/api/v1/auth" });
+    res.clearCookie(REFRESH_COOKIE, TokensService.refreshCookieClearOptions());
     return { ok: true, userId: user.id };
   }
 

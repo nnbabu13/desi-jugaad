@@ -1,0 +1,30 @@
+[Unit]
+Description=Desi Jugaad API (NestJS + Prisma)
+Documentation=https://github.com/nnbabu13/desi-jugaad
+# Start after networking and (if named that way on this host) PostgreSQL.
+# After= on a non-existent unit is ignored, so this is safe either way -
+# verify the real unit name with: systemctl list-units | grep -i postgres
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=opc
+Group=opc
+WorkingDirectory=/opt/desi-jugaad/apps/api
+# systemd injects these before NestJS boots; apps/api/main.ts also loads the
+# same file via dotenv (dotenv never overrides an already-set value).
+EnvironmentFile=/opt/desi-jugaad/.env
+ExecStart=/usr/bin/env node dist/src/main.js
+Restart=always
+RestartSec=3
+TimeoutStartSec=60
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=desi-jugaad-api
+# Basic hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

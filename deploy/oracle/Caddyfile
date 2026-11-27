@@ -1,0 +1,14 @@
+# Desi Jugaad API - Caddy reverse proxy
+#
+# sslip.io gives a free HTTPS hostname that needs no domain purchase:
+#   132-226-212-175.sslip.io  ->  resolves to 132.226.212.175 (this VM)
+# Caddy obtains and renews a Let's Encrypt certificate automatically via the
+# HTTP-01 challenge, which REQUIRES inbound TCP 80 (plus 443) to be open in
+# the Oracle Cloud security list - see deploy/README.md.
+#
+# The NestJS API itself listens on 127.0.0.1:4000 only and is never
+# reachable except through this proxy.
+
+132-226-212-175.sslip.io {
+	reverse_proxy 127.0.0.1:4000
+}

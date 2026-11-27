@@ -148,13 +148,38 @@ export class TokensService {
     return timingSafeEqual(ba, bb);
   }
 
+  /**
+   * Options for SETTING the refresh cookie.
+   *
+   * - `secure` is derived from AUTH_COOKIE_INSECURE (existing variable): on in
+   *   production it is always true.
+   * - `sameSite: 'none'` is required when secure: the site
+   *   (nnbabu13.github.io) and the API (…sslip.io) are DIFFERENT sites, so a
+   *   Lax cookie would never be sent on the cross-site refresh fetch.
+   *   With `AUTH_COOKIE_INSECURE=true` (CI, plain-http local testing) the
+   *   cookie stays `lax` + non-secure, exactly as before.
+   * - Native (Android/iOS) uses the platform cookie jar and never enforced
+   *   SameSite on these requests, so native auth behaviour is preserved.
+   */
   static refreshCookieOptions() {
+    const secure = process.env["AUTH_COOKIE_INSECURE"] !== "true";
     return {
       httpOnly: true,
-      secure: process.env["AUTH_COOKIE_INSECURE"] !== "true",
-      sameSite: "lax" as const,
+      secure,
+      sameSite: (secure ? "none" : "lax") as "none" | "lax",
       path: "/api/v1/auth",
       maxAge: REFRESH_TTL_DAYS * 86_400_000,
     };
+  }
+
+  /**
+   * Options for CLEARING the cookie. Must match the attributes used above
+   * (httpOnly/secure/sameSite/path) so the browser treats it as the same
+   * cookie - but WITHOUT `maxAge`, because a positive Max-Age alongside the
+   * past `expires` would re-create the cookie instead of deleting it.
+   */
+  static refreshCookieClearOptions() {
+    const { maxAge: _maxAge, ...rest } = TokensService.refreshCookieOptions();
+    return rest;
   }
 }

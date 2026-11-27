@@ -51,7 +51,7 @@ export class HealthController {
     if (dbStatus === "down") {
       throw new ServiceUnavailableException({
         ...body,
-        message: "Database unreachable. Is `pnpm db:tunnel` running?",
+        message: "Database unreachable. Check DATABASE_URL and connectivity (dev: run pnpm db:tunnel).",
       });
     }
 
