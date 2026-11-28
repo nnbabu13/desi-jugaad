@@ -19,11 +19,16 @@ import { UsersModule } from "./users/users.module";
     // Environment is already loaded by main.ts from the repository root.
     ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }),
 
-    // Baseline abuse protection on every route; auth routes tighten this
-    // further with their own limits.
+    // Baseline abuse protection: 300 requests/minute per route.
+    //
+    // Only ONE entry belongs here. In @nestjs/throttler v6 every throttler in
+    // this array is enforced on EVERY route, so a second, tighter entry would
+    // silently become a global cap - an earlier `auth` entry with limit 10 did
+    // exactly that, and the default's 300 never applied; admins hit 429 after
+    // eleven location toggles. Auth routes tighten themselves instead, with
+    // @Throttle({ default: { limit } }) on each handler in auth.controller.
     ThrottlerModule.forRoot([
       { name: "default", ttl: 60_000, limit: 300 },
-      { name: "auth", ttl: 60_000, limit: 10 },
     ]),
 
     PrismaModule,
