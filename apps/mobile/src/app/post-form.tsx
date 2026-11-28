@@ -245,7 +245,7 @@ export default function PostFormScreen() {
           </View>
 
           <AppText variant="heading" align="center" style={{ marginTop: theme.spacing.lg }}>
-            {published.created ? 'Listing published' : 'Changes saved'}
+            {published.created ? 'Sent for review' : 'Changes saved'}
           </AppText>
 
           <AppText
@@ -255,8 +255,8 @@ export default function PostFormScreen() {
             style={{ marginTop: theme.spacing.sm, maxWidth: 340 }}
           >
             {published.created
-              ? `“${published.title}” is live. It shows up in Home, Explore and the rooms feed, and people can message you about it directly.`
-              : `“${published.title}” has been updated. Everyone viewing the listing sees the new details right away.`}
+              ? `“${published.title}” is waiting for an admin to approve it. It appears in Home, Explore and the rooms feed as soon as it is approved - track it under My listings.`
+              : `“${published.title}” has been updated. If it is already live, everyone viewing it sees the new details right away.`}
           </AppText>
 
           <View style={{ marginTop: theme.spacing.xl, width: '100%', maxWidth: 320 }}>
@@ -417,12 +417,15 @@ export default function PostFormScreen() {
   }
 
   /**
-   * Publishes to the live marketplace (POST /rooms) or, when the form was
-   * opened from My listings, updates that row (PATCH /rooms/:id). The server
-   * decides nothing about status here: a create defaults to ACTIVE and an
-   * edit leaves the current status untouched, so editing a paused listing
-   * cannot silently put it back in the feed. A draft the flow started from is
-   * removed after publishing so the two can never drift apart.
+   * Publishes to the marketplace (POST /rooms) or, when the form was opened
+   * from My listings, updates that row (PATCH /rooms/:id).
+   *
+   * Status stays out of this payload on purpose: a create is placed in PENDING
+   * by the server, so a new listing always waits for admin approval instead of
+   * going live on submit. An edit leaves the current status alone, so saving
+   * changes to a paused or pending listing can never sneak it into the feed.
+   * A draft the flow started from is removed after submitting, so the two can
+   * never drift apart.
    */
   async function publishListing() {
     if (saving) return;
@@ -603,7 +606,7 @@ export default function PostFormScreen() {
             {isPreview ? (
               canPublish ? (
                 <Button
-                  label={listingId ? 'Save changes' : 'Publish listing'}
+                  label={listingId ? 'Save changes' : 'Submit for review'}
                   onPress={publishListing}
                   loading={saving}
                   style={styles.footerBtn}
@@ -874,8 +877,8 @@ function PreviewStep({
       <AppText variant="caption" color="textMuted" style={{ marginTop: theme.spacing.lg }}>
         {canPublish
           ? isEdit
-            ? 'Saving updates your public listing right away - anyone viewing it sees the new details.'
-            : 'Publishing makes this listing public in Home, Explore and the rooms feed. Anyone can then message you about it.'
+            ? 'Saving updates your listing. If it is already live, everyone viewing it sees the new details right away.'
+            : 'Your listing goes to an admin for review first. Once approved it appears in Home, Explore and the rooms feed, and anyone can message you about it.'
           : 'Saved drafts stay on this device until you delete them.'}
       </AppText>
     </View>

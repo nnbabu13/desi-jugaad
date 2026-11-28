@@ -31,6 +31,9 @@ const ROOM_SELECT = {
   billsIncluded: true,
   houseRules: true,
   status: true,
+  // Admin verdict: null on a live listing (approval clears it), and the
+  // rejection reason otherwise - only the owner/admin can ever read those.
+  reviewNote: true,
   demoData: true,
   createdAt: true,
   city: { select: { name: true } },
@@ -42,6 +45,12 @@ const ROOM_SELECT = {
 } satisfies Prisma.RoomSelect;
 
 type RoomRow = Prisma.RoomGetPayload<{ select: typeof ROOM_SELECT }>;
+
+/** What the write paths need about the caller: identity plus the live role. */
+interface ListingCaller {
+  id: string;
+  role: string;
+}
 
 @Injectable()
 export class RoomsService {
@@ -92,13 +101,27 @@ export class RoomsService {
     return rooms.map(presentRoom);
   }
 
-  async getOne(id: string) {
+  /**
+   * Public detail view - plus owner/admin access to an unapproved listing, so
+   * a host can open what they just submitted. Everyone else still gets a 404
+   * for a non-ACTIVE row, which means a listing awaiting review never
+   * advertises its existence to strangers.
+   */
+  async getOne(id: string, viewer?: ListingCaller) {
     const room = await this.prisma.room.findFirst({
-      where: { id, status: "ACTIVE" },
-      select: ROOM_SELECT,
+      where: { id },
+      select: { ...ROOM_SELECT, hostId: true },
     });
 
     if (!room) {
+      throw new NotFoundException("Room not found.");
+    }
+
+    const maySee =
+      room.status === "ACTIVE" ||
+      viewer?.id === room.hostId ||
+      viewer?.role === "ADMIN";
+    if (!maySee) {
       throw new NotFoundException("Room not found.");
     }
 
@@ -115,6 +138,12 @@ export class RoomsService {
   async create(hostId: string, dto: CreateRoomDto) {
     const cityId = await this.resolveCityId(dto.cityName);
 
+    // Approval gate: nothing a member posts is public the moment it is
+    // created. Only an explicit draft stays a draft; every other create waits
+    // in the admin queue. The client cannot request ACTIVE - that decision
+    // belongs to the review action alone.
+    const status = dto.status === "DRAFT" ? "DRAFT" : "PENDING";
+
     const room = await this.prisma.room.create({
       data: {
         hostId,
@@ -128,7 +157,7 @@ export class RoomsService {
         cityId,
         rooms: dto.rooms ?? 1,
         photos: dto.photos ?? [],
-        status: dto.status ?? "ACTIVE",
+        status,
         availableFrom: dto.availableFrom ? new Date(dto.availableFrom) : null,
         billsIncluded: dto.billsIncluded ?? null,
         houseRules: dto.houseRules ?? null,
@@ -151,20 +180,40 @@ export class RoomsService {
     return rooms.map(presentRoom);
   }
 
-  /** Updates one of the caller's own listings; never touches anyone else's. */
-  async update(id: string, hostId: string, dto: UpdateRoomDto) {
+  /**
+   * Updates one of the caller's own listings; never touches anyone else's.
+   *
+   * Approval is not self-service: ACTIVE is only applied to a listing that was
+   * already public (live, or paused by its owner) or when the caller is an
+   * admin. A PENDING, REJECTED or DRAFT listing has to go back through the
+   * review queue instead, so editing content can never be used to skip review.
+   */
+  async update(id: string, caller: ListingCaller, dto: UpdateRoomDto) {
     const room = await this.prisma.room.findFirst({
       where: { id },
-      select: { id: true, hostId: true },
+      select: { id: true, hostId: true, status: true },
     });
 
     if (!room) throw new NotFoundException("Room not found.");
-    if (room.hostId !== hostId) {
+    if (room.hostId !== caller.id) {
       throw new ForbiddenException("You can only edit your own listings.");
+    }
+
+    if (dto.status !== undefined && dto.status === "ACTIVE") {
+      const alreadyPublic = room.status === "ACTIVE" || room.status === "PAUSED";
+      if (!alreadyPublic && caller.role !== "ADMIN") {
+        throw new ForbiddenException(
+          "This listing has not been approved yet. It goes live once an admin approves it.",
+        );
+      }
     }
 
     const cityChanged = dto.cityName !== undefined;
     const cityId = cityChanged ? await this.resolveCityId(dto.cityName) : undefined;
+
+    // Submitting for review - first time or after a rejection - starts the
+    // decision over so a stale verdict can never read as a fresh approval.
+    const resubmitting = dto.status === "PENDING";
 
     const updated = await this.prisma.room.update({
       where: { id },
@@ -182,6 +231,9 @@ export class RoomsService {
         ...(dto.rooms !== undefined ? { rooms: dto.rooms } : {}),
         ...(dto.photos !== undefined ? { photos: dto.photos } : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
+        ...(resubmitting
+          ? { reviewedAt: null, reviewedBy: null, reviewNote: null }
+          : {}),
         ...(dto.availableFrom !== undefined
           ? { availableFrom: dto.availableFrom ? new Date(dto.availableFrom) : null }
           : {}),
@@ -245,6 +297,9 @@ function presentRoom(room: RoomRow) {
     billsIncluded: room.billsIncluded,
     houseRules: room.houseRules ?? null,
     status: room.status,
+    // Why the last review rejected it, if it is rejected. Cleared on approval
+    // and on resubmission, so a live listing can never carry a stale verdict.
+    reviewNote: room.reviewNote ?? null,
     landlordName: room.host.profile?.fullName ?? "Host",
     landlordAvatar: room.host.profile?.avatarUrl ?? null,
     // Sample content flag: the UI renders a "Sample" chip and must never show

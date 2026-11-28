@@ -141,6 +141,11 @@ export class CreateRoomDto {
   @IsUrl({ require_tld: false, require_protocol: true }, { each: true })
   photos?: string[];
 
+  /**
+   * Submission state. Only `DRAFT` is honoured on create: every other create
+   * lands in PENDING for admin review, because the client can never ask for
+   * ACTIVE - approval is the admin's decision alone.
+   */
   @IsOptional()
   @IsIn(ROOM_WRITE_STATUSES)
   status?: (typeof ROOM_WRITE_STATUSES)[number];
@@ -217,10 +222,19 @@ export class UpdateRoomDto {
   @IsUrl({ require_tld: false, require_protocol: true }, { each: true })
   photos?: string[];
 
-  /** Full status control for the owner's own listing, incl. PAUSED. */
+  /**
+   * Owner status control for their own listing.
+   *
+   * - DRAFT / PAUSED park it; PENDING submits a draft for review and is also
+   *   how a rejected listing is resubmitted.
+   * - ACTIVE is accepted here but applied only when the listing was already
+   *   approved (currently live or paused): that is how a host resumes a
+   *   listing they paused. Granting ACTIVE to a PENDING/REJECTED/DRAFT
+   *   listing is reserved for the admin review action.
+   */
   @IsOptional()
-  @IsIn(["DRAFT", "ACTIVE", "PAUSED"])
-  status?: "DRAFT" | "ACTIVE" | "PAUSED";
+  @IsIn(["DRAFT", "PENDING", "ACTIVE", "PAUSED"])
+  status?: "DRAFT" | "PENDING" | "ACTIVE" | "PAUSED";
 
   @IsOptional()
   @IsDateString()

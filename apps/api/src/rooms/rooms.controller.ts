@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { OptionalJwtAuthGuard } from "../auth/guards/optional-jwt.guard";
 import {
   CurrentUser,
   requireUser,
@@ -63,7 +64,9 @@ export class RoomsController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdateRoomDto,
   ) {
-    return this.rooms.update(id, requireUser(user).id, dto);
+    // Pass the whole caller: the service needs the live role to tell "resume
+    // my own approved listing" apart from "approve myself".
+    return this.rooms.update(id, requireUser(user), dto);
   }
 
   @Delete(":id")
@@ -77,7 +80,11 @@ export class RoomsController {
 
   // Kept last so a UUID is always what the pipe receives.
   @Get(":id")
-  one(@Param("id", ParseUUIDPipe) id: string) {
-    return this.rooms.getOne(id);
+  @UseGuards(OptionalJwtAuthGuard)
+  one(
+    @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() viewer: AuthenticatedUser | undefined,
+  ) {
+    return this.rooms.getOne(id, viewer);
   }
 }

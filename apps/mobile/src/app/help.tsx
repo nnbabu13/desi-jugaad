@@ -25,7 +25,7 @@ interface FaqEntry {
 const FAQ: FaqEntry[] = [
   {
     q: 'How do I list a room?',
-    a: 'Tap the centre Post button, choose "List a room or property", fill in the three steps and press Publish listing. Your listing appears in Home, Explore and the rooms feed straight away.',
+    a: 'Tap the centre Post button, choose "List a room or property", fill in the three steps and press Submit for review. An admin approves it, then your listing appears in Home, Explore and the rooms feed.',
   },
   {
     q: 'How do I contact a host about a room?',
