@@ -68,6 +68,11 @@ export type Message = Prisma.MessageModel
  */
 export type UserBlock = Prisma.UserBlockModel
 /**
+ * Model PlatformSetting
+ * 
+ */
+export type PlatformSetting = Prisma.PlatformSettingModel
+/**
  * Model Notification
  * 
  */

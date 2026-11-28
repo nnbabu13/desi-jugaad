@@ -89,6 +89,8 @@ export interface PublicUser {
   email: string;
   phone: string | null;
   status: 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
+  /** Two tiers only - gates the admin surfaces in the UI. */
+  role: 'USER' | 'ADMIN';
   emailVerified: boolean;
   phoneVerified: boolean;
   authProvider: 'EMAIL' | 'PHONE' | 'GOOGLE' | 'APPLE';

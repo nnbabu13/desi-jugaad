@@ -16,12 +16,20 @@ interface JwtPayload {
   exp: number;
 }
 
+/** Two tiers only - mirrors the `UserRole` enum in the schema. */
+export type UserRole = "USER" | "ADMIN";
+
 export interface AuthenticatedUser {
   id: string;
   email: string;
   status: string;
   emailVerified: boolean;
   phoneVerified: boolean;
+  /**
+   * Live from the row, not from the token, so a demotion or suspension bites
+   * on the next request instead of when the access token expires.
+   */
+  role: UserRole;
 }
 
 /**
@@ -58,6 +66,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
         id: true,
         email: true,
         status: true,
+        role: true,
         emailVerifiedAt: true,
         phoneVerifiedAt: true,
         deletedAt: true,
@@ -77,6 +86,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
       status: user.status,
       emailVerified: user.emailVerifiedAt !== null,
       phoneVerified: user.phoneVerifiedAt !== null,
+      role: user.role as UserRole,
     };
 
     return request.user;

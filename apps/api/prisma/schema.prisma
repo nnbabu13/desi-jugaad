@@ -108,6 +108,15 @@ enum VerificationStatus {
   EXPIRED
 }
 
+/**
+ * Two tiers only (agreed with the operator): members and admins. Every
+ * privileged action is gated on ADMIN server-side; the client never decides.
+ */
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id               String        @id @default(uuid()) @db.Uuid
   email            String        @unique @db.VarChar(320)
@@ -116,6 +125,7 @@ model User {
   authProvider     AuthProvider  @default(EMAIL)
   providerUserId   String?       @db.VarChar(255)
   status           UserStatus    @default(PENDING_VERIFICATION)
+  role             UserRole      @default(USER)
   emailVerifiedAt  DateTime?     @db.Timestamptz(3)
   phoneVerifiedAt  DateTime?     @db.Timestamptz(3)
   lastLoginAt      DateTime?     @db.Timestamptz(3)
@@ -214,8 +224,10 @@ model RefreshToken {
 
 enum ListingStatus {
   DRAFT
+  PENDING
   ACTIVE
   PAUSED
+  REJECTED
   ARCHIVED
 }
 
@@ -240,8 +252,13 @@ model Room {
   availableFrom  DateTime?    @db.Date
   billsIncluded  Boolean?
   houseRules     String?      @db.Text
-  status         ListingStatus @default(ACTIVE)
+  status         ListingStatus @default(PENDING)
   demoData       Boolean      @default(false)
+  // Admin review trail: PENDING is invisible to every public query, REJECTED
+  // records why so the owner can fix and resubmit.
+  reviewedBy     String?      @db.Uuid
+  reviewedAt     DateTime?    @db.Timestamptz(3)
+  reviewNote     String?      @db.VarChar(500)
   cityId         String?      @db.Uuid
   createdAt      DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime     @updatedAt @db.Timestamptz(3)
@@ -309,6 +326,28 @@ model UserBlock {
   @@unique([blockerId, blockedId])
   @@index([blockedId])
   @@map("user_blocks")
+}
+
+// ---------------------------------------------------------------------------
+// Platform settings: the admin's "enable/disable everything" lever.
+//
+// Key/value rows so a new toggle never needs a migration. Known keys:
+//   disabledCategories  string[]  category ids hidden from every tab
+//   maintenanceMode     boolean   public writes paused
+//   registrationOpen    boolean   /auth/register accepts new accounts
+// `value` is Json because the shape is per-key; the admin service validates.
+// ---------------------------------------------------------------------------
+
+model PlatformSetting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique @db.VarChar(64)
+  value     Json
+  // No FK on purpose: an audit pointer that must survive account deletion.
+  updatedBy String?  @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("platform_settings")
 }
 
 // ---------------------------------------------------------------------------

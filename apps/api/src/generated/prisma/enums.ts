@@ -48,10 +48,20 @@ export const VerificationStatus = {
 export type VerificationStatus = (typeof VerificationStatus)[keyof typeof VerificationStatus]
 
 
+export const UserRole = {
+  USER: 'USER',
+  ADMIN: 'ADMIN'
+} as const
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole]
+
+
 export const ListingStatus = {
   DRAFT: 'DRAFT',
+  PENDING: 'PENDING',
   ACTIVE: 'ACTIVE',
   PAUSED: 'PAUSED',
+  REJECTED: 'REJECTED',
   ARCHIVED: 'ARCHIVED'
 } as const
 

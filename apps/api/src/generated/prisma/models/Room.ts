@@ -52,6 +52,9 @@ export type RoomMinAggregateOutputType = {
   houseRules: string | null
   status: $Enums.ListingStatus | null
   demoData: boolean | null
+  reviewedBy: string | null
+  reviewedAt: Date | null
+  reviewNote: string | null
   cityId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -73,6 +76,9 @@ export type RoomMaxAggregateOutputType = {
   houseRules: string | null
   status: $Enums.ListingStatus | null
   demoData: boolean | null
+  reviewedBy: string | null
+  reviewedAt: Date | null
+  reviewNote: string | null
   cityId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -95,6 +101,9 @@ export type RoomCountAggregateOutputType = {
   houseRules: number
   status: number
   demoData: number
+  reviewedBy: number
+  reviewedAt: number
+  reviewNote: number
   cityId: number
   createdAt: number
   updatedAt: number
@@ -128,6 +137,9 @@ export type RoomMinAggregateInputType = {
   houseRules?: true
   status?: true
   demoData?: true
+  reviewedBy?: true
+  reviewedAt?: true
+  reviewNote?: true
   cityId?: true
   createdAt?: true
   updatedAt?: true
@@ -149,6 +161,9 @@ export type RoomMaxAggregateInputType = {
   houseRules?: true
   status?: true
   demoData?: true
+  reviewedBy?: true
+  reviewedAt?: true
+  reviewNote?: true
   cityId?: true
   createdAt?: true
   updatedAt?: true
@@ -171,6 +186,9 @@ export type RoomCountAggregateInputType = {
   houseRules?: true
   status?: true
   demoData?: true
+  reviewedBy?: true
+  reviewedAt?: true
+  reviewNote?: true
   cityId?: true
   createdAt?: true
   updatedAt?: true
@@ -280,6 +298,9 @@ export type RoomGroupByOutputType = {
   houseRules: string | null
   status: $Enums.ListingStatus
   demoData: boolean
+  reviewedBy: string | null
+  reviewedAt: Date | null
+  reviewNote: string | null
   cityId: string | null
   createdAt: Date
   updatedAt: Date
@@ -325,6 +346,9 @@ export type RoomWhereInput = {
   houseRules?: Prisma.StringNullableFilter<"Room"> | string | null
   status?: Prisma.EnumListingStatusFilter<"Room"> | $Enums.ListingStatus
   demoData?: Prisma.BoolFilter<"Room"> | boolean
+  reviewedBy?: Prisma.UuidNullableFilter<"Room"> | string | null
+  reviewedAt?: Prisma.DateTimeNullableFilter<"Room"> | Date | string | null
+  reviewNote?: Prisma.StringNullableFilter<"Room"> | string | null
   cityId?: Prisma.UuidNullableFilter<"Room"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Room"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Room"> | Date | string
@@ -350,6 +374,9 @@ export type RoomOrderByWithRelationInput = {
   houseRules?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   demoData?: Prisma.SortOrder
+  reviewedBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewNote?: Prisma.SortOrderInput | Prisma.SortOrder
   cityId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -378,6 +405,9 @@ export type RoomWhereUniqueInput = Prisma.AtLeast<{
   houseRules?: Prisma.StringNullableFilter<"Room"> | string | null
   status?: Prisma.EnumListingStatusFilter<"Room"> | $Enums.ListingStatus
   demoData?: Prisma.BoolFilter<"Room"> | boolean
+  reviewedBy?: Prisma.UuidNullableFilter<"Room"> | string | null
+  reviewedAt?: Prisma.DateTimeNullableFilter<"Room"> | Date | string | null
+  reviewNote?: Prisma.StringNullableFilter<"Room"> | string | null
   cityId?: Prisma.UuidNullableFilter<"Room"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Room"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Room"> | Date | string
@@ -403,6 +433,9 @@ export type RoomOrderByWithAggregationInput = {
   houseRules?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   demoData?: Prisma.SortOrder
+  reviewedBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewNote?: Prisma.SortOrderInput | Prisma.SortOrder
   cityId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -433,6 +466,9 @@ export type RoomScalarWhereWithAggregatesInput = {
   houseRules?: Prisma.StringNullableWithAggregatesFilter<"Room"> | string | null
   status?: Prisma.EnumListingStatusWithAggregatesFilter<"Room"> | $Enums.ListingStatus
   demoData?: Prisma.BoolWithAggregatesFilter<"Room"> | boolean
+  reviewedBy?: Prisma.UuidNullableWithAggregatesFilter<"Room"> | string | null
+  reviewedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Room"> | Date | string | null
+  reviewNote?: Prisma.StringNullableWithAggregatesFilter<"Room"> | string | null
   cityId?: Prisma.UuidNullableWithAggregatesFilter<"Room"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Room"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Room"> | Date | string
@@ -454,6 +490,9 @@ export type RoomCreateInput = {
   houseRules?: string | null
   status?: $Enums.ListingStatus
   demoData?: boolean
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   host: Prisma.UserCreateNestedOneWithoutRoomsInput
@@ -478,6 +517,9 @@ export type RoomUncheckedCreateInput = {
   houseRules?: string | null
   status?: $Enums.ListingStatus
   demoData?: boolean
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
   cityId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -500,6 +542,9 @@ export type RoomUpdateInput = {
   houseRules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumListingStatusFieldUpdateOperationsInput | $Enums.ListingStatus
   demoData?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   host?: Prisma.UserUpdateOneRequiredWithoutRoomsNestedInput
@@ -524,6 +569,9 @@ export type RoomUncheckedUpdateInput = {
   houseRules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumListingStatusFieldUpdateOperationsInput | $Enums.ListingStatus
   demoData?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -547,6 +595,9 @@ export type RoomCreateManyInput = {
   houseRules?: string | null
   status?: $Enums.ListingStatus
   demoData?: boolean
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
   cityId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -568,6 +619,9 @@ export type RoomUpdateManyMutationInput = {
   houseRules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumListingStatusFieldUpdateOperationsInput | $Enums.ListingStatus
   demoData?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -589,6 +643,9 @@ export type RoomUncheckedUpdateManyInput = {
   houseRules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumListingStatusFieldUpdateOperationsInput | $Enums.ListingStatus
   demoData?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -621,6 +678,9 @@ export type RoomCountOrderByAggregateInput = {
   houseRules?: Prisma.SortOrder
   status?: Prisma.SortOrder
   demoData?: Prisma.SortOrder
+  reviewedBy?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
+  reviewNote?: Prisma.SortOrder
   cityId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -647,6 +707,9 @@ export type RoomMaxOrderByAggregateInput = {
   houseRules?: Prisma.SortOrder
   status?: Prisma.SortOrder
   demoData?: Prisma.SortOrder
+  reviewedBy?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
+  reviewNote?: Prisma.SortOrder
   cityId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -668,6 +731,9 @@ export type RoomMinOrderByAggregateInput = {
   houseRules?: Prisma.SortOrder
   status?: Prisma.SortOrder
   demoData?: Prisma.SortOrder
+  reviewedBy?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
+  reviewNote?: Prisma.SortOrder
   cityId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -824,6 +890,9 @@ export type RoomCreateWithoutCityInput = {
   houseRules?: string | null
   status?: $Enums.ListingStatus
   demoData?: boolean
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   host: Prisma.UserCreateNestedOneWithoutRoomsInput
@@ -847,6 +916,9 @@ export type RoomUncheckedCreateWithoutCityInput = {
   houseRules?: string | null
   status?: $Enums.ListingStatus
   demoData?: boolean
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   conversations?: Prisma.ConversationUncheckedCreateNestedManyWithoutRoomInput
@@ -898,6 +970,9 @@ export type RoomScalarWhereInput = {
   houseRules?: Prisma.StringNullableFilter<"Room"> | string | null
   status?: Prisma.EnumListingStatusFilter<"Room"> | $Enums.ListingStatus
   demoData?: Prisma.BoolFilter<"Room"> | boolean
+  reviewedBy?: Prisma.UuidNullableFilter<"Room"> | string | null
+  reviewedAt?: Prisma.DateTimeNullableFilter<"Room"> | Date | string | null
+  reviewNote?: Prisma.StringNullableFilter<"Room"> | string | null
   cityId?: Prisma.UuidNullableFilter<"Room"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Room"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Room"> | Date | string
@@ -919,6 +994,9 @@ export type RoomCreateWithoutHostInput = {
   houseRules?: string | null
   status?: $Enums.ListingStatus
   demoData?: boolean
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   city?: Prisma.CityCreateNestedOneWithoutRoomsInput
@@ -941,6 +1019,9 @@ export type RoomUncheckedCreateWithoutHostInput = {
   houseRules?: string | null
   status?: $Enums.ListingStatus
   demoData?: boolean
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
   cityId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -989,6 +1070,9 @@ export type RoomCreateWithoutConversationsInput = {
   houseRules?: string | null
   status?: $Enums.ListingStatus
   demoData?: boolean
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   host: Prisma.UserCreateNestedOneWithoutRoomsInput
@@ -1012,6 +1096,9 @@ export type RoomUncheckedCreateWithoutConversationsInput = {
   houseRules?: string | null
   status?: $Enums.ListingStatus
   demoData?: boolean
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
   cityId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1049,6 +1136,9 @@ export type RoomUpdateWithoutConversationsInput = {
   houseRules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumListingStatusFieldUpdateOperationsInput | $Enums.ListingStatus
   demoData?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   host?: Prisma.UserUpdateOneRequiredWithoutRoomsNestedInput
@@ -1072,6 +1162,9 @@ export type RoomUncheckedUpdateWithoutConversationsInput = {
   houseRules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumListingStatusFieldUpdateOperationsInput | $Enums.ListingStatus
   demoData?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1094,6 +1187,9 @@ export type RoomCreateManyCityInput = {
   houseRules?: string | null
   status?: $Enums.ListingStatus
   demoData?: boolean
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1114,6 +1210,9 @@ export type RoomUpdateWithoutCityInput = {
   houseRules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumListingStatusFieldUpdateOperationsInput | $Enums.ListingStatus
   demoData?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   host?: Prisma.UserUpdateOneRequiredWithoutRoomsNestedInput
@@ -1137,6 +1236,9 @@ export type RoomUncheckedUpdateWithoutCityInput = {
   houseRules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumListingStatusFieldUpdateOperationsInput | $Enums.ListingStatus
   demoData?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   conversations?: Prisma.ConversationUncheckedUpdateManyWithoutRoomNestedInput
@@ -1159,6 +1261,9 @@ export type RoomUncheckedUpdateManyWithoutCityInput = {
   houseRules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumListingStatusFieldUpdateOperationsInput | $Enums.ListingStatus
   demoData?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1179,6 +1284,9 @@ export type RoomCreateManyHostInput = {
   houseRules?: string | null
   status?: $Enums.ListingStatus
   demoData?: boolean
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
+  reviewNote?: string | null
   cityId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1200,6 +1308,9 @@ export type RoomUpdateWithoutHostInput = {
   houseRules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumListingStatusFieldUpdateOperationsInput | $Enums.ListingStatus
   demoData?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   city?: Prisma.CityUpdateOneWithoutRoomsNestedInput
@@ -1222,6 +1333,9 @@ export type RoomUncheckedUpdateWithoutHostInput = {
   houseRules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumListingStatusFieldUpdateOperationsInput | $Enums.ListingStatus
   demoData?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1244,6 +1358,9 @@ export type RoomUncheckedUpdateManyWithoutHostInput = {
   houseRules?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumListingStatusFieldUpdateOperationsInput | $Enums.ListingStatus
   demoData?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reviewNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cityId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1297,6 +1414,9 @@ export type RoomSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   houseRules?: boolean
   status?: boolean
   demoData?: boolean
+  reviewedBy?: boolean
+  reviewedAt?: boolean
+  reviewNote?: boolean
   cityId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -1323,6 +1443,9 @@ export type RoomSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   houseRules?: boolean
   status?: boolean
   demoData?: boolean
+  reviewedBy?: boolean
+  reviewedAt?: boolean
+  reviewNote?: boolean
   cityId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -1347,6 +1470,9 @@ export type RoomSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   houseRules?: boolean
   status?: boolean
   demoData?: boolean
+  reviewedBy?: boolean
+  reviewedAt?: boolean
+  reviewNote?: boolean
   cityId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -1371,12 +1497,15 @@ export type RoomSelectScalar = {
   houseRules?: boolean
   status?: boolean
   demoData?: boolean
+  reviewedBy?: boolean
+  reviewedAt?: boolean
+  reviewNote?: boolean
   cityId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type RoomOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "hostId" | "title" | "description" | "accommodationType" | "furnished" | "rent" | "currency" | "area" | "rooms" | "photos" | "availableFrom" | "billsIncluded" | "houseRules" | "status" | "demoData" | "cityId" | "createdAt" | "updatedAt", ExtArgs["result"]["room"]>
+export type RoomOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "hostId" | "title" | "description" | "accommodationType" | "furnished" | "rent" | "currency" | "area" | "rooms" | "photos" | "availableFrom" | "billsIncluded" | "houseRules" | "status" | "demoData" | "reviewedBy" | "reviewedAt" | "reviewNote" | "cityId" | "createdAt" | "updatedAt", ExtArgs["result"]["room"]>
 export type RoomInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   host?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   city?: boolean | Prisma.Room$cityArgs<ExtArgs>
@@ -1416,6 +1545,9 @@ export type $RoomPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     houseRules: string | null
     status: $Enums.ListingStatus
     demoData: boolean
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    reviewNote: string | null
     cityId: string | null
     createdAt: Date
     updatedAt: Date
@@ -1861,6 +1993,9 @@ export interface RoomFieldRefs {
   readonly houseRules: Prisma.FieldRef<"Room", 'String'>
   readonly status: Prisma.FieldRef<"Room", 'ListingStatus'>
   readonly demoData: Prisma.FieldRef<"Room", 'Boolean'>
+  readonly reviewedBy: Prisma.FieldRef<"Room", 'String'>
+  readonly reviewedAt: Prisma.FieldRef<"Room", 'DateTime'>
+  readonly reviewNote: Prisma.FieldRef<"Room", 'String'>
   readonly cityId: Prisma.FieldRef<"Room", 'String'>
   readonly createdAt: Prisma.FieldRef<"Room", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Room", 'DateTime'>

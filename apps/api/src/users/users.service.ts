@@ -106,6 +106,7 @@ export class UsersService {
       email: user.email,
       phone: user.phone,
       status: user.status,
+      role: user.role,
       emailVerified: user.emailVerifiedAt !== null,
       phoneVerified: user.phoneVerifiedAt !== null,
       createdAt: user.createdAt.toISOString(),

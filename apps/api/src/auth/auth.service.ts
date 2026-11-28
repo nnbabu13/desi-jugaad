@@ -26,6 +26,8 @@ export interface PublicUser {
   email: string;
   phone: string | null;
   status: string;
+  /** USER | ADMIN - lets the client show or hide admin surfaces. */
+  role: string;
   emailVerified: boolean;
   phoneVerified: boolean;
   authProvider: string;
@@ -285,6 +287,7 @@ export const PublicUser = {
       email: user.email,
       phone: user.phone,
       status: user.status,
+      role: user.role,
       emailVerified: user.emailVerifiedAt !== null,
       phoneVerified: user.phoneVerifiedAt !== null,
       authProvider: user.authProvider,
