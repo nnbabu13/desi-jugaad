@@ -26,6 +26,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { CategoryShortcuts, CategoryId } from '@/components/categories';
 import { ScreenHeader } from '@/components/layout/screen-header';
+import { LocationPickerSheet } from '@/components/location-picker-sheet';
 import { Avatar } from '@/components/ui/avatar';
 import { TrustRow } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -88,6 +89,9 @@ export default function HomeScreen() {
   const [rooms, setRooms] = useState<HomeRoom[]>([]);
   const [roomsLoading, setRoomsLoading] = useState(true);
   const [roomsError, setRoomsError] = useState<string | null>(null);
+  // Mounted conditionally so the sheet seeds its country/city from the stored
+  // selection every time it opens.
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
 
   const loadRooms = useCallback(async () => {
     setRoomsLoading(true);
@@ -194,6 +198,7 @@ export default function HomeScreen() {
         <ScreenHeader
           brand
           subtitle={locationLoading ? 'Finding your location…' : (locationLabel ?? 'Choose your city')}
+          onSubtitlePress={() => setLocationPickerOpen(true)}
           actions={[
             {
               icon: 'notifications-outline',
@@ -474,6 +479,12 @@ export default function HomeScreen() {
           </View>
         ))}
       </ScrollView>
+
+      {/* City picker - the header subtitle opens it; Modal portals above the
+          tab bar so the sheet is never clipped by the scroll container. */}
+      {locationPickerOpen ? (
+        <LocationPickerSheet onClose={() => setLocationPickerOpen(false)} />
+      ) : null}
     </Screen>
   );
 }
