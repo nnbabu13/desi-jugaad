@@ -36,7 +36,15 @@ const ROOM_SELECT = {
   reviewNote: true,
   demoData: true,
   createdAt: true,
-  city: { select: { name: true } },
+  // isActive + the country's are used for the location check (getOne and the
+  // feed); presentRoom never exposes them, it only reads city.name.
+  city: {
+    select: {
+      name: true,
+      isActive: true,
+      country: { select: { isActive: true } },
+    },
+  },
   host: {
     select: {
       profile: { select: { fullName: true, avatarUrl: true } },
@@ -58,41 +66,58 @@ export class RoomsService {
 
   /** Public, read-only feed of ACTIVE listings ordered newest first. */
   async list(dto: ListRoomsDto) {
-    const rooms = await this.prisma.room.findMany({
-      where: {
-        status: "ACTIVE",
-        // `city` and `country` nest in one relation so both AND together:
-        // ?country=GB&city=London pins one city inside one country.
-        ...(dto.city || dto.country
-          ? {
-              city: {
-                ...(dto.city
-                  ? { name: { equals: dto.city, mode: "insensitive" as const } }
-                  : {}),
-                ...(dto.country
-                  ? {
-                      country: {
-                        isoCode: {
-                          equals: dto.country,
-                          mode: "insensitive" as const,
-                        },
-                      },
-                    }
-                  : {}),
-              },
-            }
-          : {}),
-        ...(dto.q
-          ? {
-              OR: [
-                { title: { contains: dto.q, mode: "insensitive" } },
-                { description: { contains: dto.q, mode: "insensitive" } },
-                { area: { contains: dto.q, mode: "insensitive" } },
-                { city: { name: { contains: dto.q, mode: "insensitive" } } },
-              ],
-            }
-          : {}),
+    // Collected in an AND array because two different conditions need their
+    // own OR (the text search, and the location check below) - spreading both
+    // into one object literal would silently drop the first.
+    const conditions: Prisma.RoomWhereInput[] = [
+      { status: "ACTIVE" },
+      // Disabling a country or a city hides its listings too, otherwise
+      // "turn off London" would remove the city from every picker while its
+      // rooms stayed for sale. A listing with no city belongs to no location,
+      // so it stays visible.
+      {
+        OR: [
+          { cityId: null },
+          { city: { isActive: true, country: { isActive: true } } },
+        ],
       },
+    ];
+
+    // `city` and `country` nest in one relation so both AND together:
+    // ?country=GB&city=London pins one city inside one country.
+    if (dto.city || dto.country) {
+      conditions.push({
+        city: {
+          ...(dto.city
+            ? { name: { equals: dto.city, mode: "insensitive" as const } }
+            : {}),
+          ...(dto.country
+            ? {
+                country: {
+                  isoCode: {
+                    equals: dto.country,
+                    mode: "insensitive" as const,
+                  },
+                },
+              }
+            : {}),
+        },
+      });
+    }
+
+    if (dto.q) {
+      conditions.push({
+        OR: [
+          { title: { contains: dto.q, mode: "insensitive" as const } },
+          { description: { contains: dto.q, mode: "insensitive" as const } },
+          { area: { contains: dto.q, mode: "insensitive" as const } },
+          { city: { name: { contains: dto.q, mode: "insensitive" as const } } },
+        ],
+      });
+    }
+
+    const rooms = await this.prisma.room.findMany({
+      where: { AND: conditions },
       orderBy: { createdAt: "desc" },
       take: 100,
       select: ROOM_SELECT,
@@ -117,8 +142,13 @@ export class RoomsService {
       throw new NotFoundException("Room not found.");
     }
 
+    // A live listing inside a disabled country or city is as unavailable as
+    // that location - but its owner and an admin can still reach it, to fix
+    // it or move it elsewhere.
+    const city = room.city;
+    const locationVisible = !city || (city.isActive && city.country.isActive);
     const maySee =
-      room.status === "ACTIVE" ||
+      (room.status === "ACTIVE" && locationVisible) ||
       viewer?.id === room.hostId ||
       viewer?.role === "ADMIN";
     if (!maySee) {

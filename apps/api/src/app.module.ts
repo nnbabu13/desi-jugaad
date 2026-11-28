@@ -11,6 +11,7 @@ import { MessagesModule } from "./messages/messages.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RoomsModule } from "./rooms/rooms.module";
+import { SettingsModule } from "./settings/settings.module";
 import { UsersModule } from "./users/users.module";
 
 @Module({
@@ -26,6 +27,8 @@ import { UsersModule } from "./users/users.module";
     ]),
 
     PrismaModule,
+    // Global: the switch reads auth, rooms and admin all depend on.
+    SettingsModule,
     HealthModule,
     GeographyModule,
     AuthModule,

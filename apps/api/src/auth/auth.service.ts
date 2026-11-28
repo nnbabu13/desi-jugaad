@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -10,6 +11,7 @@ import { randomBytes } from "node:crypto";
 import type { User } from "../generated/prisma/client";
 import { Prisma } from "../generated/prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { SettingsService } from "../settings/settings.service";
 import type { LoginDto, RegisterDto, VerifyEmailDto } from "./auth.dto";
 import { RequestMeta, TokensService, TokenPair } from "./tokens.service";
 
@@ -41,12 +43,21 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tokens: TokensService,
+    private readonly settings: SettingsService,
   ) {}
 
   async register(dto: RegisterDto, meta: RequestMeta = {}): Promise<AuthResult> {
     if (!dto.acceptTerms) {
       throw new BadRequestException(
         "You must accept the Terms and Privacy Policy to continue.",
+      );
+    }
+
+    // Admin switch: turning sign-up off stops new accounts without touching
+    // existing sessions or sign-in.
+    if (!(await this.settings.isRegistrationOpen())) {
+      throw new ForbiddenException(
+        "Registration is closed right now. Please try again later.",
       );
     }
 

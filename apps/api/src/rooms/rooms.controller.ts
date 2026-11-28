@@ -12,6 +12,7 @@ import {
 } from "@nestjs/common";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { OptionalJwtAuthGuard } from "../auth/guards/optional-jwt.guard";
+import { MaintenanceGuard } from "../common/guards/maintenance.guard";
 import {
   CurrentUser,
   requireUser,
@@ -48,8 +49,10 @@ export class RoomsController {
     return this.rooms.mine(requireUser(user).id);
   }
 
+  // Writes only: browsing stays available while maintenance mode is on, and
+  // JwtAuthGuard runs first so MaintenanceGuard can see the caller's role.
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, MaintenanceGuard)
   create(
     @CurrentUser() user: AuthenticatedUser | undefined,
     @Body() dto: CreateRoomDto,
@@ -58,7 +61,7 @@ export class RoomsController {
   }
 
   @Patch(":id")
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, MaintenanceGuard)
   update(
     @CurrentUser() user: AuthenticatedUser | undefined,
     @Param("id", ParseUUIDPipe) id: string,
@@ -70,7 +73,7 @@ export class RoomsController {
   }
 
   @Delete(":id")
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, MaintenanceGuard)
   remove(
     @CurrentUser() user: AuthenticatedUser | undefined,
     @Param("id", ParseUUIDPipe) id: string,
