@@ -21,7 +21,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { CategoryShortcuts, CategoryId } from '@/components/categories';
@@ -93,7 +93,14 @@ export default function HomeScreen() {
   // selection every time it opens.
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
 
+  // Location changes fire a new feed request while the previous one is still
+  // in flight (mount with no city, then the stored city resolves). Without a
+  // guard the slower - unfiltered - response wins and Home shows another
+  // city's listings, so only the newest request may write state.
+  const roomsRequestIdRef = useRef(0);
+
   const loadRooms = useCallback(async () => {
+    const requestId = ++roomsRequestIdRef.current;
     setRoomsLoading(true);
     setRoomsError(null);
     try {
@@ -103,14 +110,16 @@ export default function HomeScreen() {
         query: cityName ? { city: cityName } : undefined,
         auth: false,
       });
+      if (requestId !== roomsRequestIdRef.current) return; // superseded
       setRooms(res ?? []);
     } catch (err) {
+      if (requestId !== roomsRequestIdRef.current) return; // superseded
       setRooms([]);
       setRoomsError(
         err instanceof ApiError ? err.message : 'Could not load listings.',
       );
     } finally {
-      setRoomsLoading(false);
+      if (requestId === roomsRequestIdRef.current) setRoomsLoading(false);
     }
   }, [location]);
 
