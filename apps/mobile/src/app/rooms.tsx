@@ -20,6 +20,7 @@ import { TrustRow } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { EmptyState, ErrorState, SkeletonCard } from '@/components/ui/states';
 import { ApiError, api } from '@/lib/api';
+import { useLocation } from '@/stores/location';
 import { useTheme } from '@/theme/use-theme';
 
 interface Room {
@@ -60,25 +61,41 @@ export default function RoomsScreen() {
   const [filterType, setFilterType] = useState('all');
   const [filterFurnished, setFilterFurnished] = useState('all');
 
-  const load = useCallback(async (search?: string) => {
-    try {
-      // The text filter runs SERVER-side (title, description, neighbourhood
-      // and city) so it reaches beyond the first 100 rows of the feed.
-      const res = await api.get<Room[]>('/rooms', {
-        query: search ? { q: search } : undefined,
-        auth: false,
-      });
-      setRooms(res ?? []);
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : 'Could not load rooms.',
-      );
-      setRooms([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { location } = useLocation();
+  // Listings follow the selected location by default; the chip below lets the
+  // user drop the scope and browse every city (Home's empty state links here
+  // promising exactly that).
+  const [scopeToLocation, setScopeToLocation] = useState(true);
+  const locationScope = scopeToLocation ? location : null;
+
+  const load = useCallback(
+    async (search?: string) => {
+      try {
+        // The text filter runs SERVER-side (title, description, neighbourhood
+        // and city) so it reaches beyond the first 100 rows of the feed.
+        const query: Record<string, string> = {};
+        if (search) query.q = search;
+        if (locationScope) {
+          if (locationScope.cityName) query.city = locationScope.cityName;
+          if (locationScope.countryIso) query.country = locationScope.countryIso;
+        }
+        const res = await api.get<Room[]>('/rooms', {
+          query: Object.keys(query).length > 0 ? query : undefined,
+          auth: false,
+        });
+        setRooms(res ?? []);
+        setError(null);
+      } catch (err) {
+        setError(
+          err instanceof ApiError ? err.message : 'Could not load rooms.',
+        );
+        setRooms([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [locationScope],
+  );
 
   /** Retry path: event handlers may flip loading before reloading. */
   const reload = useCallback(() => {
@@ -104,11 +121,16 @@ export default function RoomsScreen() {
     return matchesType && matchesFurnished;
   });
 
-  const hasActiveFilters = filterCity.trim() !== '' || filterType !== 'all' || filterFurnished !== 'all';
+  const hasActiveFilters =
+    filterCity.trim() !== '' ||
+    filterType !== 'all' ||
+    filterFurnished !== 'all' ||
+    locationScope !== null;
   const clearFilters = () => {
     setFilterCity('');
     setFilterType('all');
     setFilterFurnished('all');
+    setScopeToLocation(false);
   };
 
   const renderRoom = (room: Room) => {
@@ -221,7 +243,58 @@ export default function RoomsScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 32, flexGrow: 1 }}
         ListHeaderComponent={
           <>
-        <View style={{ marginTop: 4 }}>
+        {/* Location scope: on = this city only, off = every city. */}
+        {location ? (
+          <Pressable
+            onPress={() => {
+              setLoading(true);
+              setScopeToLocation((prev) => !prev);
+            }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: scopeToLocation }}
+            accessibilityLabel={
+              scopeToLocation
+                ? `Showing ${location.cityName}. Tap to browse all cities`
+                : 'Browsing all cities. Tap to show only your city'
+            }
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              alignSelf: 'flex-start',
+              paddingHorizontal: 12,
+              paddingVertical: 7,
+              borderRadius: theme.radius.pill,
+              backgroundColor: scopeToLocation
+                ? theme.colors.primaryTint
+                : theme.colors.surface,
+              borderWidth: 1,
+              borderColor: scopeToLocation ? theme.colors.primary : theme.colors.border,
+            }}
+          >
+            <Ionicons
+              name="location-outline"
+              size={14}
+              color={scopeToLocation ? theme.colors.primary : theme.colors.textMuted}
+            />
+            <AppText
+              variant="caption"
+              style={{
+                color: scopeToLocation ? theme.colors.primary : theme.colors.textSecondary,
+                fontWeight: '600',
+              }}
+            >
+              {scopeToLocation
+                ? `${location.cityName}, ${location.countryIso}`
+                : 'All cities'}
+            </AppText>
+            {scopeToLocation ? (
+              <Ionicons name="close" size={14} color={theme.colors.primary} />
+            ) : null}
+          </Pressable>
+        ) : null}
+
+        <View style={{ marginTop: location ? 12 : 4 }}>
           <Input
             placeholder="Search rooms, areas or cities"
             value={filterCity}

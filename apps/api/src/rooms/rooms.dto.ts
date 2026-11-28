@@ -28,6 +28,17 @@ export class ListRoomsDto {
   city?: string;
 
   /**
+   * ISO-3166 alpha-2 country code (case-insensitive), e.g. `?country=GB`.
+   * Scopes the feed to cities of that country; combine with `?city=` to pin a
+   * single city inside it. A listing with no city belongs to no country, so it
+   * is excluded when either filter is present.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(3)
+  country?: string;
+
+  /**
    * Free-text match over title, description, neighbourhood and city name so
    * the client's single search box can filter the WHOLE feed server-side
    * (the list itself is capped at 100 rows), e.g. `?q=camberwell`.

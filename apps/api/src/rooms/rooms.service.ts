@@ -52,8 +52,26 @@ export class RoomsService {
     const rooms = await this.prisma.room.findMany({
       where: {
         status: "ACTIVE",
-        ...(dto.city
-          ? { city: { name: { equals: dto.city, mode: "insensitive" } } }
+        // `city` and `country` nest in one relation so both AND together:
+        // ?country=GB&city=London pins one city inside one country.
+        ...(dto.city || dto.country
+          ? {
+              city: {
+                ...(dto.city
+                  ? { name: { equals: dto.city, mode: "insensitive" as const } }
+                  : {}),
+                ...(dto.country
+                  ? {
+                      country: {
+                        isoCode: {
+                          equals: dto.country,
+                          mode: "insensitive" as const,
+                        },
+                      },
+                    }
+                  : {}),
+              },
+            }
           : {}),
         ...(dto.q
           ? {

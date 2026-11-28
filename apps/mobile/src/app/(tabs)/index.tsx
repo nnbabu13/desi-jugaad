@@ -105,9 +105,15 @@ export default function HomeScreen() {
     setRoomsError(null);
     try {
       const cityName = location?.cityName;
-      // Public feed; scoped to the selected city when one is set.
+      const countryIso = location?.countryIso;
+      // Public feed; scoped to the selected country AND city when one is set.
+      // Both are sent so a city name shared with another country can never
+      // leak that country's rooms into this feed.
       const res = await api.get<HomeRoom[]>('/rooms', {
-        query: cityName ? { city: cityName } : undefined,
+        query: {
+          ...(cityName ? { city: cityName } : {}),
+          ...(countryIso ? { country: countryIso } : {}),
+        },
         auth: false,
       });
       if (requestId !== roomsRequestIdRef.current) return; // superseded
