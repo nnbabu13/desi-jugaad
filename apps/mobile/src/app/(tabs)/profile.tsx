@@ -65,6 +65,15 @@ const MENU: MenuRow[] = [
   { icon: 'settings-outline', label: 'Settings', hint: 'Account, privacy and legal', href: '/settings' },
 ];
 
+/** Shown only to admins: the dashboard's own screen is gated too, but a
+ *  non-admin should never be offered a door that only returns 403. */
+const ADMIN_MENU: MenuRow = {
+  icon: 'shield-outline',
+  label: 'Admin dashboard',
+  hint: 'Review queue, statistics and switches',
+  href: '/admin',
+};
+
 export default function ProfileScreen() {
   const theme = useTheme();
   const { user, status: authStatus, logout } = useAuth();
@@ -73,6 +82,9 @@ export default function ProfileScreen() {
 
   const [editing, setEditing] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+
+  // The admin row only exists for admins; everyone else never sees the door.
+  const menu = user?.role === 'ADMIN' ? [ADMIN_MENU, ...MENU] : MENU;
 
   // Settings links here with ?edit=1 to open the editor directly. The param
   // is cleared after opening so a later visit to the tab starts closed.
@@ -403,7 +415,7 @@ export default function ProfileScreen() {
         <View style={{ marginTop: 16 }}>
           <AppText variant="subheading">Account</AppText>
           <Card padding="none" style={{ marginTop: 8 }}>
-            {MENU.map((row, index) => (
+            {menu.map((row, index) => (
               <Pressable
                 key={row.label}
                 onPress={() => router.push(row.href)}
