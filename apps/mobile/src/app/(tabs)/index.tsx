@@ -77,7 +77,6 @@ export default function HomeScreen() {
 
   const profile = user?.profile;
   const fullName = profile?.fullName ?? 'there';
-  const firstName = fullName.split(' ')[0] ?? fullName;
 
   const locationLabel = useMemo(() => {
     if (location) return `${location.cityName}, ${location.countryIso || location.countryName}`;
@@ -288,34 +287,8 @@ export default function HomeScreen() {
           <CategoryShortcuts onSelect={openCategory} />
         </View>
 
-        {/* ------------------------------------------------------- Greeting */}
-        {authStatus === 'authenticated' ? (
-          <Card
-            padding="lg"
-            style={{ marginTop: theme.spacing.xl }}
-            elevated
-          >
-            <View style={styles.greetingRow}>
-              <View style={styles.greetingText}>
-                <AppText variant="caption" color="textMuted">
-                  Welcome back
-                </AppText>
-                <AppText variant="subheading" style={{ marginTop: 2 }}>
-                  {firstName}
-                </AppText>
-              </View>
-
-              <View
-                style={[
-                  styles.greetingMark,
-                  { backgroundColor: theme.colors.secondaryTint, borderRadius: theme.radius.lg },
-                ]}
-              >
-                <Ionicons name="hand-left-outline" size={26} color={theme.colors.secondary} />
-              </View>
-            </View>
-          </Card>
-        ) : (
+        {/* ------------------------------------- Sign-in prompt (signed out) */}
+        {authStatus !== 'authenticated' ? (
           <Card padding="lg" style={{ marginTop: theme.spacing.xl }} elevated>
             <AppText variant="subheading">Join your city community</AppText>
             <AppText variant="body" color="textSecondary" style={{ marginTop: theme.spacing.xs }}>
@@ -339,7 +312,7 @@ export default function HomeScreen() {
               </AppText>
             </Pressable>
           </Card>
-        )}
+        ) : null}
 
         {/* ------------------------------------------------------- Sections */}
         {sections.map((section) => (
@@ -521,21 +494,6 @@ const styles = StyleSheet.create({
   filterBtn: {
     width: 32,
     height: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  greetingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  greetingText: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  greetingMark: {
-    width: 56,
-    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
   },
