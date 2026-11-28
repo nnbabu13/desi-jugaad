@@ -72,17 +72,25 @@ export default function ExploreScreen() {
 
   /* ---------------------------------------------------------------- actions */
 
-  function openPostForCategory() {
-    if (category === 'all') return;
-    const type = postTypeForCategory(category);
+  /** Opens the post wizard; the listing tabs always post a room. */
+  function openPostForCategory(explicit?: CategoryId) {
+    const target = explicit ?? (category === 'all' ? 'rentals' : category);
+    const type = postTypeForCategory(target);
     router.push({ pathname: '/post-form', params: { type: type.id } });
   }
 
   /* ------------------------------------------------------------ derived UI */
 
   const categoryDef = category === 'all' ? null : categoryById(category);
+  // "All" has no single category, but rooms are the only live listings, so it
+  // shows the same feed as Rentals instead of an empty card.
+  const showsListings = category === 'all' || category === 'rentals';
+  const listingsDef = categoryById('rentals');
+  // Non-null in every branch: listings tabs take the Rentals definition, the
+  // remaining tabs always have a concrete category.
+  const cardDef = showsListings ? listingsDef : (categoryDef ?? listingsDef);
 
-  // Live listings for the Rentals category, scoped to the selected country
+  // Live listings for the All and Rentals tabs, scoped to the selected country
   // AND city. Both are sent so a city name shared by two countries can never
   // pull the other country's rooms into this feed.
   const roomsQuery = useQuery<ExploreRoom[]>(
@@ -96,7 +104,7 @@ export default function ExploreScreen() {
         signal,
       }),
     [cityName, countryIso],
-    { enabled: category === 'rentals' },
+    { enabled: showsListings },
   );
 
   /* ------------------------------------------------------------------ view */
@@ -126,23 +134,22 @@ export default function ExploreScreen() {
               <CategoryTabs value={category} onChange={setCategory} />
             </View>
 
-            {/* Category context: Rentals shows live listings; the rest show
-                an honest empty state with a working action until their
-                backends ship. */}
-            {categoryDef ? (
-              <Card padding="lg" style={{ marginTop: theme.spacing.lg }}>
-                <View style={styles.categoryHead}>
-                  <Badge
-                    label={categoryDef.label}
-                    tone={categoryDef.tint === 'neutral' ? 'neutral' : (categoryDef.tint as 'primary' | 'secondary' | 'accent')}
-                    /* Badge prints `icon` as literal text, so it needs a glyph,
-                       not an Ionicons name (which would render as "home-outline"). */
-                    icon={categoryIcon(categoryDef.id)}
-                  />
-                </View>
+            {/* "All" and Rentals show the live feed for the selected location;
+                the remaining categories show an honest empty state with a
+                working action until their backends ship. */}
+            <Card padding="lg" style={{ marginTop: theme.spacing.lg }}>
+              <View style={styles.categoryHead}>
+                <Badge
+                  label={cardDef.label}
+                  tone={cardDef.tint === 'neutral' ? 'neutral' : (cardDef.tint as 'primary' | 'secondary' | 'accent')}
+                  /* Badge prints `icon` as literal text, so it needs a glyph,
+                     not an Ionicons name (which would render as "home-outline"). */
+                  icon={categoryIcon(cardDef.id)}
+                />
+              </View>
 
-                {categoryDef.id === 'rentals' ? (
-                  roomsQuery.initialLoading ? (
+              {showsListings ? (
+                roomsQuery.initialLoading ? (
                     <SkeletonCard count={2} />
                   ) : roomsQuery.error ? (
                     <View>
@@ -239,7 +246,7 @@ export default function ExploreScreen() {
                   ) : (
                     <EmptyState
                       compact
-                      icon={categoryIcon(categoryDef.id)}
+                      icon={categoryIcon(cardDef.id)}
                       title={
                         cityName
                           ? `No rentals in ${cityName} yet`
@@ -255,29 +262,28 @@ export default function ExploreScreen() {
                         onPress: () => router.push('/rooms'),
                       }}
                       secondaryAction={{
-                        label: `Post ${categoryDef.shortLabel.toLowerCase()}`,
-                        onPress: openPostForCategory,
+                        label: 'Post a room',
+                        onPress: () => openPostForCategory('rentals'),
                       }}
                     />
                   )
                 ) : (
                   <EmptyState
                     compact
-                    icon={categoryIcon(categoryDef.id)}
-                    title={`No ${categoryDef.shortLabel.toLowerCase()} here yet`}
+                    icon={categoryIcon(cardDef.id)}
+                    title={`No ${cardDef.shortLabel.toLowerCase()} here yet`}
                     message={
                       cityName
                         ? `Nothing published in ${cityName} so far. Be the first, or browse another city.`
                         : `Nothing published in ${location?.countryName ?? 'this country'} so far.`
                     }
                     action={{
-                      label: `Post ${categoryDef.shortLabel.toLowerCase()}`,
-                      onPress: openPostForCategory,
+                      label: `Post ${cardDef.shortLabel.toLowerCase()}`,
+                      onPress: () => openPostForCategory(),
                     }}
                   />
                 )}
-              </Card>
-            ) : null}
+            </Card>
 
           </>
       </ScrollView>
